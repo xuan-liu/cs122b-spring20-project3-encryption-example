@@ -7,20 +7,18 @@ import java.util.ArrayList;
 import org.jasypt.util.password.PasswordEncryptor;
 import org.jasypt.util.password.StrongPasswordEncryptor;
 
-import javax.sound.midi.SysexMessage;
-
-public class UpdateSecurePassword {
+public class UpdateSecurePasswordCustomers {
 
     /*
-     * 
+     *
      * This program updates your existing moviedb customers table to change the
      * plain text passwords to encrypted passwords.
-     * 
+     *
      * You should only run this program **once**, because this program uses the
      * existing passwords as real passwords, then replace them. If you run it more
      * than once, it will treat the encrypted passwords as real passwords and
      * generate wrong values.
-     * 
+     *
      */
     public static void main(String[] args) throws Exception {
 
@@ -33,16 +31,16 @@ public class UpdateSecurePassword {
         Statement statement = connection.createStatement();
 
         // change the customers table password column from VARCHAR(20) to VARCHAR(128)
-        String alterQuery = "ALTER TABLE employees MODIFY COLUMN password VARCHAR(128)";
+        String alterQuery = "ALTER TABLE customers MODIFY COLUMN password VARCHAR(128)";
         int alterResult = statement.executeUpdate(alterQuery);
-        System.out.println("altering employee table schema completed, " + alterResult + " rows affected");
+        System.out.println("altering customers table schema completed, " + alterResult + " rows affected");
 
         // get the ID and password for each customer
-        String query = "SELECT email, password from employees";
+        String query = "SELECT id, password from customers";
 
         ResultSet rs = statement.executeQuery(query);
 
-        // we use the StrongPasswordEncryptor from jasypt library (Java Simplified Encryption) 
+        // we use the StrongPasswordEncryptor from jasypt library (Java Simplified Encryption)
         //  it internally use SHA-256 algorithm and 10,000 iterations to calculate the encrypted password
         PasswordEncryptor passwordEncryptor = new StrongPasswordEncryptor();
 
@@ -51,24 +49,21 @@ public class UpdateSecurePassword {
         System.out.println("encrypting password (this might take a while)");
         while (rs.next()) {
             // get the ID and plain text password from current table
-            String email = rs.getString("email");
+            String id = rs.getString("id");
             String password = rs.getString("password");
 
-            System.out.println("email and password: " + email + ", " + password);
-            
             // encrypt the password using StrongPasswordEncryptor
             String encryptedPassword = passwordEncryptor.encryptPassword(password);
 
             // generate the update query
-            System.out.println(email);
-            String updateQuery = String.format("UPDATE employees SET password='%s' WHERE email='%s';", encryptedPassword,
-                    email);
+            String updateQuery = String.format("UPDATE customers SET password='%s' WHERE id=%s;", encryptedPassword,
+                    id);
             updateQueryList.add(updateQuery);
         }
         rs.close();
 
         // execute the update queries to update the password
-        System.out.println(updateQueryList.toString());
+        System.out.println("updating password");
         int count = 0;
         for (String updateQuery : updateQueryList) {
             int updateResult = statement.executeUpdate(updateQuery);
